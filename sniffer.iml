@@ -7,5 +7,9 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" name="jnetpcap" level="project" />
+    <orderEntry type="library" name="junit-4.12" level="project" />
+    <orderEntry type="library" name="hamcrest-core-1.1" level="project" />
+    <orderEntry type="library" name="jnetpcap-1.4.r1425-1a" level="project" />
   </component>
 </module>
