@@ -1,25 +1,51 @@
 package service;
 
-import jpcap.*;
 
-import java.util.Arrays;
+import org.jnetpcap.PcapIf;
+import org.jnetpcap.Pcap;
+import org.junit.Test;
 
-/** NetWorkCard 作用是用于获取网卡
- * @author micro_chen
- */
+import java.util.ArrayList;
+import java.util.List;
+
+
+
 public class NetworkCard {
 
-    public static NetworkInterface[] getDevices() {
-        NetworkInterface[] devices = JpcapCaptor.getDeviceList();
-        return devices;
+    List<PcapIf> alldevs = new ArrayList<>();  // 用于加载所有的网卡设备
+    StringBuilder errbuf = new StringBuilder();  // 获取错误信息
+
+    /*
+    首先获取系统中的设备列表
+     */
+    public List<PcapIf> getAlldevs() {
+        /*
+        类似于pcap_open_live()打开的所有网络设备
+         */
+        int statusCode = Pcap.findAllDevs(alldevs, errbuf);
+        if (statusCode != Pcap.OK || alldevs.isEmpty()) {
+            System.out.println("Error occurred: " + errbuf.toString());
+            return alldevs;
+        }
+
+        System.out.println("Network devices found:");
+        int i = 0;
+        for(PcapIf device : alldevs) {
+            String description =
+                    (device.getDescription() != null) ? device.getDescription()
+                            : "No description available";  // 如果该设备介绍，则输出介绍
+            System.out.printf("#%d: %s [%s]\n", i++, device.getName(), description);
+        }
+
+        return alldevs;
     }
 
-    // 测试代码
-    public static void main(String[] args) {
-        NetworkInterface[] devices = getDevices();
-        for(int i = 0; i < devices.length; i++) {
-            System.out.println(i + ": " + devices[i].name + "("
-                    + devices[i].description  + ")");
-        }
+    /**
+     * 测试方法：getAlldevs()
+     */
+    @Test
+    public void test() {
+        getAlldevs();
     }
+
 }
