@@ -23,13 +23,10 @@ public class PacketCapture implements Runnable {
 
     private String[] protocolList = {"ICMP","UDP","TCP","IP"};
 
-    //private JpcapCaptor captor;
 
     private volatile boolean isRun = true;
 
-//    private final Object lock = new Object();
-//
-//    private boolean pause = false;
+
 
     private PacketCapture(){}
 
@@ -46,34 +43,12 @@ public class PacketCapture implements Runnable {
 
     public void setDevice(NetworkInterface device) {
         this.device = device;
-        //captor.close();
     }
 
     public void setRun(boolean run) {
         isRun = run;
     }
 
-    //
-//    public void pauseThread(){
-//        this.pause = true;
-//    }
-//
-//    public void resumeThread(){
-//        this.pause = false;
-//        synchronized (lock){
-//            lock.notify();
-//        }
-//    }
-//
-//    void onPause(){
-//        synchronized (lock){
-//            try {
-//                lock.wait();
-//            }catch (InterruptedException e){
-//                e.printStackTrace();
-//            }
-//        }
-//    }
 
     public void bindTable(ObservableList<PacketInfo> packetInfos){
         this.packetInfos = packetInfos;
@@ -123,20 +98,28 @@ public class PacketCapture implements Runnable {
             if (!(info.getProtocol().contains(protocolType))) flag = false;
         }
         if (!("".equals(Filter))){
-            if (Filter.contains("sip")){
-                String sip = Filter.substring(4);
+            if (Filter.contains("src.ip")){
+                int equalsIndex = Filter.indexOf("==");
+                String sip = Filter.substring(equalsIndex + 2);
                 if (!info.getSourceIp().contains(sip)) flag = false;
-            }else if (Filter.contains("dip")){
-                String dip = Filter.substring(4);
+            }else if (Filter.contains("dst.ip")){
+                int equalsIndex = Filter.indexOf("==");
+                String dip = Filter.substring(equalsIndex + 2);
                 if (!info.getTargetIp().contains(dip)) flag = false;
             }else if (Filter.contains("keyword")){
-                String keyword = Filter.substring(8);
+                int equalsIndex = Filter.indexOf("==");
+                String keyword = Filter.substring(equalsIndex + 2);
                 if (!info.getInfo().contains(keyword)) flag = false;
-            }else if (Filter.contains("port")){
-                String port = Filter.substring(5);
+            }else if (Filter.contains("src.port")){
+                int equalsIndex = Filter.indexOf("==");
+                String port = Filter.substring(equalsIndex + 2);
                 String sport = info.getSourcePort();
-                String tport = info.getTargetPort();
-                if (sport==null||tport==null||(!sport.contains(port)&&!tport.contains(port))) flag = false;
+                if (sport==null||(!sport.contains(port))) flag = false;
+            } else if (Filter.contains("dst.port")) {
+                int equalsIndex = Filter.indexOf("==");
+                String port = Filter.substring(equalsIndex + 2);
+                String dport = info.getTargetPort();
+                if (dport==null||(!dport.contains(port))) flag = false;
             }
             for (String p:protocolList) {
                 if (Filter.contains(p)){
@@ -146,15 +129,47 @@ public class PacketCapture implements Runnable {
             }
         }
 
-//        if (info!=null){
-//
-//        }
-
         info.setInterfaceName(device.name);
 
         return flag?info:null;
     }
 
+
+    public static String traceRoute(PacketInfo packetInfo) {
+
+        String srcIP = packetInfo.getSourceIp();
+        String srcPort = packetInfo.getSourcePort();
+        String dstIP = packetInfo.getTargetIp();
+        String dstPort = packetInfo.getTargetPort();
+
+        if(srcIP.equals("") || srcPort.equals("") || dstPort.equals("")||dstIP.equals(""))
+            return "";
+
+        StringBuilder strb = new StringBuilder();
+
+        for(Packet packet : getInstance().packets) {
+            PacketInfo info = PacketFactory.packet2Info(packet, 0);
+            if(info == null) continue;
+            String srcIP1 = info.getSourceIp();
+            String srcPort1 = info.getSourcePort();
+            String dstIP1 = info.getTargetIp();
+            String dstPort1 = info.getTargetPort();
+            if(srcIP1 == null || srcPort1 == null || dstPort1 == null||dstIP1 == null)
+                continue;
+            if(srcIP1.equals("") || srcPort1.equals("") || dstPort1.equals("")||dstIP1.equals(""))
+                continue;
+            if(srcIP1.equals(srcIP) && srcPort1.equals(srcPort))
+                strb.append(info);
+            else if(srcIP1.equals(dstIP) && srcPort1.equals(dstPort))
+                strb.append(info);
+            else if(dstIP1.equals(srcIP) && dstPort1.equals(srcPort))
+                strb.append(info);
+            else if(dstIP1.equals(dstIP) && dstPort1.equals(dstPort))
+                strb.append(info);
+        }
+
+        return strb.toString();
+    }
 
     @Override
     public void run() {

@@ -126,4 +126,16 @@ public class PacketInfo {
     public void setTargetPort(String targetPort) {
         this.targetPort = targetPort;
     }
+
+    @Override
+    public String toString() {
+        return "PacketInfo{" +
+                "sourceIp='" + sourceIp + '\'' +
+                ", sourcePort='" + sourcePort + '\'' +
+                ", targetIp='" + targetIp + '\'' +
+                ", targetPort='" + targetPort + '\'' +
+                ", protocol='" + protocol + '\'' +
+                ", length=" + length +
+                "}\n";
+    }
 }

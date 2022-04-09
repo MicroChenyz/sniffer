@@ -38,7 +38,6 @@ public class Controller implements Initializable {
 
     private PacketCapture capture;
 
-    //private ObservableValue<Boolean> scanning =
     private SimpleBooleanProperty scanning = new SimpleBooleanProperty(false);
 
     private Thread scaningThread = null;
@@ -79,16 +78,18 @@ public class Controller implements Initializable {
     @FXML
     private TextArea detail_text;
 
+    @FXML
+    private TextArea trace_route;
+
 
     public static ObservableList<PacketInfo> packets = FXCollections.observableArrayList();
 
+
     private final ObservableList<String> protocols = FXCollections.observableArrayList(
-            "",
             "IP",
             "ICMP",
             "TCP",
             "UDP"
-//            "ARP"
     );
 
     private ObservableList<NetworkInterface> networkCards = FXCollections.observableArrayList();
@@ -116,24 +117,14 @@ public class Controller implements Initializable {
         packetTable.setItems(packets);
 
 
-//        packetTable.setOnMouseClicked(new EventHandler<MouseEvent>() {
-//            @Override
-//            public void handle(MouseEvent event) {
-//                if (event.getButton().equals(MouseButton.PRIMARY)
-//                        && event.getClickCount() == 1
-//                        && this.getIndex() < packetTable.getItems().size()) {
-////                    choosedStream = TableRowControl.this.getItem();//获取点击的对象
-////                    choosedIndex=TableRowControl.this.getIndex();//获取点击的index，就是表上的第几项
-//                }
-//            }
-//        });
-
         packetTable.setRowFactory(new Callback<TableView<PacketInfo>, TableRow<PacketInfo>>() {
             @Override
             public TableRow<PacketInfo> call(TableView<PacketInfo> param) {
                 return new TableRowControl();
             }
         });
+
+
     }
 
     class TableRowControl extends TableRow<PacketInfo>{
@@ -145,15 +136,12 @@ public class Controller implements Initializable {
                     if (event.getButton().equals(MouseButton.PRIMARY)
                             && event.getClickCount() == 1
                             && TableRowControl.this.getIndex() < packetTable.getItems().size()) {
-//                        choosedStream = TableRowControl.this.getItem();//获取点击的对象
-//                        choosedIndex=TableRowControl.this.getIndex();//获取点击的index，就是表上的第几项
 
-                        //System.out.println(TableRowControl.this.getIndex());
                         int index = TableRowControl.this.getIndex();
                         PacketInfo info = packetTable.getItems().get(index);
                         Packet p = info.getPacket();
 
-                        Map<String,Object> m =  PacketFactory.getPacketDetail(p);
+                        Map<String,Object> m =  PacketFactory.getPacketDetail(info,p);
                         for(String key : m.keySet()){
                             System.out.println(m.get(key));
                         }
@@ -164,7 +152,6 @@ public class Controller implements Initializable {
                         TreeItem<String> frameRoot = new TreeItem<>("frame "+(index+1)+" : "+p.header.length +" bytes on wire");
                         TreeItem<String> interfaceName = new TreeItem<>("Interface Name :"+info.getInterfaceName());
                         frameRoot.getChildren().add(interfaceName);
-                        //box.getChildren().add(new TreeView<String>(frameRoot));
                         rootnode.getChildren().add(frameRoot);
 
                         for (String key : m.keySet()){
@@ -181,16 +168,18 @@ public class Controller implements Initializable {
                                 croot = new TreeItem<>(key+": "+value);
                             }
                             if (croot!=null){
-                                //box.getChildren().add(new TreeView<String>(croot));
                                 rootnode.getChildren().add(croot);
                             }
 
                         }
                         rootnode.setExpanded(true);
                         box.getChildren().add(new TreeView<String>(rootnode));
-
                         detail_text.setVisible(true);
                         detail_text.setText(PacketFactory.getDetail(p));
+                        trace_route.setVisible(true);
+                        trace_route.setText(PacketCapture.traceRoute(info));
+
+
 
                     }
                 }
@@ -199,10 +188,7 @@ public class Controller implements Initializable {
     }
 
     public void filldata(){
-//        for (int i = 0;i<10;i++){
-//            PacketInfo info = new PacketInfo(i+1,String.valueOf(i),String.valueOf(i+100),String.valueOf(i+200),"udp",191,"detail");
-//            packets.add(info);
-//        }
+
         networkCards.clear();
         NetworkInterface[] networkInterfaces = NetCard.getDevices();
         for (NetworkInterface networkInterface:
@@ -214,23 +200,13 @@ public class Controller implements Initializable {
     public void initCapture(){
         capture = PacketCapture.getInstance();
         bindData2Capture();
-        //对配置改变产生响应
 
-        //scaningThread = new Thread(capture);
 
     }
 
     public void initConfigure(){
         //初始化头部几个配置
         selectProtocol.setItems(protocols);
-//        selectNetworkCard.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<String>() {
-//            @Override
-//            public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
-//                scanning.set(false);
-//                //如果不是选择空
-//                //capture.setDevice();
-//            }
-//        });
 
         selectNetworkCard.setItems(networkCards);
 
@@ -290,9 +266,7 @@ public class Controller implements Initializable {
         scanning.addListener(new ChangeListener<Boolean>() {
             @Override
             public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) {
-//                if (scaningThread!=null){
-//
-//                }
+
                 if (newValue){
                     start_stop.setText("停止");
                     if (scaningThread==null||!scaningThread.isAlive()){
@@ -322,7 +296,7 @@ public class Controller implements Initializable {
         initConfigure();
         initCapture();
 
-        //bindData2Capture();
+
     }
 
 

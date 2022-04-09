@@ -1,19 +1,17 @@
 package service;
 
-import service.PacketInfo;
 import jpcap.packet.*;
-import service.UnknownBytes2String;
-
 import javax.xml.bind.DatatypeConverter;
 import java.io.UnsupportedEncodingException;
-import java.lang.reflect.Array;
+
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class PacketFactory {
     public static PacketInfo packet2Info(Packet packet,Integer no){
-//        System.out.println(DatatypeConverter.printHexBinary(packet.data));
+
         PacketInfo info = null;
         if (packet.getClass().equals(ICMPPacket.class)){
             info = ICMPanalyze(packet);
@@ -24,13 +22,12 @@ public class PacketFactory {
         }else if (packet.getClass().equals(IPPacket.class)){
             info = IPanalyze(packet);
         }
-//        else if (packet.getClass().equals(ARPPacket.class)){
-//            info = ARPanalyze(packet);
-//        }
+
         if (info!=null) info.setNo(no);
-        //return info==null?new PacketInfo():info;
+
         return info;
     }
+
 
     public static PacketInfo IPanalyze(Packet packet){
         PacketInfo info = null;
@@ -45,7 +42,6 @@ public class PacketFactory {
             info.setInfo(ipPacket.toString());
             info.setPacket(packet);
 
-//            System.out.println(ipPacket.header);
         }
         return info;
     }
@@ -63,7 +59,6 @@ public class PacketFactory {
             info.setInfo(icmpPacket.toString());
             info.setPacket(packet);
 
-//            System.out.println(icmpPacket.header);
         }
         return info;
     }
@@ -83,15 +78,6 @@ public class PacketFactory {
 
             info.setSourcePort(String.valueOf(tcpPacket.src_port));
             info.setTargetPort(String.valueOf(tcpPacket.dst_port));
-
-//            System.out.println(tcpPacket.header);
-//
-//            System.out.println(tcpPacket.ack);
-//            System.out.println(tcpPacket.ack_num);
-//            System.out.println(tcpPacket.caplen);
-//            System.out.println(tcpPacket.dst_port);
-//            System.out.println(tcpPacket.src_port);
-//            System.out.println(tcpPacket.toString());
         }
         return info;
     }
@@ -111,6 +97,7 @@ public class PacketFactory {
 
             info.setSourcePort(String.valueOf(udpPacket.src_port));
             info.setTargetPort(String.valueOf(udpPacket.dst_port));
+            System.out.println(info.getSourcePort() + "-------------" + info.getTargetPort());
 
             System.out.println(DatatypeConverter.printHexBinary(udpPacket.header));
         }
@@ -178,10 +165,10 @@ public class PacketFactory {
         return stringBuilder.toString();
     }
 
-    public static Map<String,Object> getPacketDetail(Packet packet){
-        Map<String,Object> map = new HashMap<>();
+    public static Map<String,Object> getPacketDetail(PacketInfo info, Packet packet){
+        Map<String,Object> map = new LinkedHashMap<>();
 
-        Map<String,String> ethernetMap = new HashMap<>();
+        Map<String,String> ethernetMap = new LinkedHashMap<>();
 
         ethernetMap.put("time",String.valueOf(packet.sec));
         ethernetMap.put("dataLength",String.valueOf(packet.header.length));
@@ -196,7 +183,7 @@ public class PacketFactory {
 
 
         if (etherprotocol[0]==0x08&&etherprotocol[1]==0x00){
-            Map<String,String> ipMap = new HashMap<>();
+            Map<String,String> ipMap = new LinkedHashMap<>();
             int ipHeadlen = 20;
             byte[] ipHead = Arrays.copyOfRange(packet.header,14,14+ipHeadlen);
             byte i1 = ipHead[0];
@@ -222,11 +209,11 @@ public class PacketFactory {
 
             if (ipMap.get("ipProtocol").equals("6")){//TCP
 
-                Map<String,String> tcpMap = new HashMap<>();
+                Map<String,String> tcpMap = new LinkedHashMap<>();
 
                 byte[] tcpHead = Arrays.copyOfRange(packet.header,34,54);
-                tcpMap.put("tcpSourcePort",String.valueOf(bytes2Int(Arrays.copyOfRange(tcpHead,0,2))));
-                tcpMap.put("tcpDestinationPort",String.valueOf(bytes2Int(Arrays.copyOfRange(tcpHead,2,4))));
+                tcpMap.put("tcpSourcePort",info.getSourcePort());
+                tcpMap.put("tcpDestinationPort",info.getTargetPort());
                 tcpMap.put("tcpSequence",String.valueOf(bytes2Int(Arrays.copyOfRange(tcpHead,4,8))));
                 tcpMap.put("tcpAck",String.valueOf(bytes2Int(Arrays.copyOfRange(tcpHead,8,12))));
                 byte b12 = tcpHead[12];
@@ -244,7 +231,7 @@ public class PacketFactory {
                 map.put("Transmission Control Protocol,Src Port: "+tcpMap.get("tcpSourcePort")+" Dst Port: "+tcpMap.get("tcpDestinationPort"),tcpMap);
 
             }else if (ipMap.get("ipProtocol").equals("1")){//icmp
-                Map<String,String> icmpMap = new HashMap<>();
+                Map<String,String> icmpMap = new LinkedHashMap<>();
                 byte[] icmpHead = Arrays.copyOfRange(packet.header,34,42);
                 icmpMap.put("icmpType",String.valueOf(bytes2Int(Arrays.copyOfRange(icmpHead,0,1))));
                 icmpMap.put("icmpCode",String.valueOf(bytes2Int(Arrays.copyOfRange(icmpHead,1,2))));
@@ -254,10 +241,10 @@ public class PacketFactory {
                 map.put("Internet Control Message Protocol",icmpMap);
 
             }else if (ipMap.get("ipProtocol").equals("17")){//udp
-                Map<String,String> udpMap = new HashMap<>();
+                Map<String,String> udpMap = new LinkedHashMap<>();
                 byte[] udpHead = Arrays.copyOfRange(packet.header,34,42);
-                udpMap.put("udpSourcePort",String.valueOf(bytes2Int(Arrays.copyOfRange(udpHead,0,2))));
-                udpMap.put("udpDetinationPort",String.valueOf(bytes2Int(Arrays.copyOfRange(udpHead,2,4))));
+                udpMap.put("udpSourcePort",info.getSourcePort());
+                udpMap.put("udpDetinationPort",info.getTargetPort());
                 udpMap.put("udpDataLen",String.valueOf(bytes2Int(Arrays.copyOfRange(udpHead,4,6))));
                 udpMap.put("udpCheckSum",String.valueOf(bytes2Int(Arrays.copyOfRange(udpHead,6,8))));
 
@@ -302,5 +289,8 @@ public class PacketFactory {
 
         return stringBuilder.toString();
     }
+
+
+
 
 }

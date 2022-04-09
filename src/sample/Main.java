@@ -19,14 +19,8 @@ public class Main extends Application {
 
     @Override
     public void start(Stage primaryStage) throws Exception{
-//        System.out.println(System.getProperty("java.library.path"));
-//        ArrayList<PcapIf> alldevs = new ArrayList<>();
-//        StringBuilder errbuf = new StringBuilder();
-//        int r = Pcap.findAllDevs(alldevs,errbuf);
-//        System.out.println(r==Pcap.NOT_OK);
-//        System.out.println(alldevs.size());
         Parent root = FXMLLoader.load(getClass().getResource("sample.fxml"));
-        primaryStage.setTitle("GY网络嗅探器");
+        primaryStage.setTitle("网络嗅探器");
         primaryStage.setScene(new Scene(root, 1360, 800));
         primaryStage.show();
     }
