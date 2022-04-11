@@ -1,8 +1,6 @@
 package service;
 
 import java.io.UnsupportedEncodingException;
-import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 
 public class UnknownBytes2String {
     public static String parse(byte[] bytes) throws UnsupportedEncodingException {
@@ -26,14 +24,10 @@ public class UnknownBytes2String {
             while (nNow < nLen) {
                 U1 = b[nNow];
                 if ((U1 & 0x80) == 0x80) {
-                    // One chinese charactor is three bytes in utf-8,
-                    // so bytes less than 3 do not contain chinese charactor
                     if (nLen > nNow + 2) {
                         U2 = b[nNow + 1];
                         U3 = b[nNow + 2];
-                        // One chinese charactor is three bytes in utf-8,
-                        // Higher bits of these three bytes shoule be 0xE0 0xC0
-                        // 0xC0
+
                         if (((U1 & 0xE0) == 0XE0) && ((U2 & 0xC0) == 0x80)
                                 && ((U3 & 0xC0) == 0x80)) {
                             // maybe UTF-8
@@ -50,7 +44,6 @@ public class UnknownBytes2String {
                         break;
                     }
                 } else {
-                    // not chinese character
                     nNow++;
                 }
             }
