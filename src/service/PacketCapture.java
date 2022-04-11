@@ -21,7 +21,7 @@ public class PacketCapture implements Runnable {
     private ArrayList<Packet> packets = new ArrayList<>();
     private ObservableList<PacketInfo> packetInfos = null;
 
-    private String[] protocolList = {"ICMP","UDP","TCP","IP"};
+    private String[] protocolList = {"ARP","ICMP","UDP","TCP","IP4","HTTP","IP6","TLS"};
 
 
     private volatile boolean isRun = true;

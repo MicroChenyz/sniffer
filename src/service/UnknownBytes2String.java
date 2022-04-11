@@ -17,12 +17,9 @@ public class UnknownBytes2String {
     }
 
     public static boolean isUtf8(byte[] b){
-//        byte[] b = buffer.array();
         boolean beUTF8 = false;
         int nLen = b.length;
 
-        // One chinese charactor is three bytes in utf-8,
-        // so bytes less than 3 do not contain chinese charactor
         if (nLen >= 3) {
             byte U1, U2, U3;
             int nNow = 0;

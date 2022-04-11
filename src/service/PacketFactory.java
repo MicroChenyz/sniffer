@@ -21,20 +21,37 @@ public class PacketFactory {
             info = UDPanalyze(packet);
         }else if (packet.getClass().equals(IPPacket.class)){
             info = IPanalyze(packet);
+        } else if(packet.getClass().equals(ARPPacket.class)) {
+            info = ARPanalyze(packet);
         }
 
-        if (info!=null) info.setNo(no);
+        if(info!=null) {
+            info.setNo(no);
+            if(info.getTargetPort() != null || info.getSourcePort() != null) {
+                if (info.getTargetPort().equals("80") || info.getSourcePort().equals("80")) {
+                    if(packet.data.length != 0)
+                        info.setProtocol("HTTP");
+                } else if((info.getSourcePort().equals("443") || info.getTargetPort().equals("443"))) {
+                    if (packet.data.length != 0)
+                        info.setProtocol("TLS");
+                }
+            }
+
+        }
+
 
         return info;
     }
-
 
     public static PacketInfo IPanalyze(Packet packet){
         PacketInfo info = null;
         if (packet instanceof IPPacket){
             info = new PacketInfo();
             IPPacket ipPacket = (IPPacket) packet;
-            info.setProtocol("IP");
+            if(String.valueOf(ipPacket.version).equals("4"))
+                info.setProtocol("IP4");
+            else
+                info.setProtocol("IP6");
             info.setTime(String.valueOf(ipPacket.sec));
             info.setSourceIp(ipPacket.src_ip.toString().substring(1));
             info.setTargetIp(ipPacket.dst_ip.toString().substring(1));
@@ -181,7 +198,6 @@ public class PacketFactory {
 
         map.put("Ethernet II,Src:"+ethernetMap.get("macSocrce")+",Dst:"+ethernetMap.get("macTarget"),ethernetMap);
 
-
         if (etherprotocol[0]==0x08&&etherprotocol[1]==0x00){
             Map<String,String> ipMap = new LinkedHashMap<>();
             int ipHeadlen = 20;
@@ -230,13 +246,43 @@ public class PacketFactory {
 
                 map.put("Transmission Control Protocol,Src Port: "+tcpMap.get("tcpSourcePort")+" Dst Port: "+tcpMap.get("tcpDestinationPort"),tcpMap);
 
+                if((tcpMap.get("tcpSourcePort").equals("80") || tcpMap.get("tcpDestinationPort").equals("80")) && packet.data != null && packet.data.length != 0) {
+                    Map<String,String> httpMap = new LinkedHashMap<>();
+                    StringBuilder stringBuilder = new StringBuilder();
+                    if (packet.data!=null&&packet.data.length!=0){
+                        stringBuilder.append("\n\nData:\n");
+                        try {
+                            stringBuilder.append(service.UnknownBytes2String.parse(packet.data));
+                        } catch ( UnsupportedEncodingException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    httpMap.put("data", stringBuilder.toString());
+                    map.put("Hypertext Transfer Protocol", httpMap);
+                }
+                else if((tcpMap.get("tcpSourcePort").equals("443") || tcpMap.get("tcpDestinationPort").equals("443")) && packet.data != null && packet.data.length != 0) {
+                    Map<String,String> tlsMap = new LinkedHashMap<>();
+                    StringBuilder stringBuilder = new StringBuilder();
+                    if (packet.data!=null&&packet.data.length!=0){
+                        stringBuilder.append("\n\nData:\n");
+                        try {
+                            stringBuilder.append(service.UnknownBytes2String.parse(packet.data));
+                        } catch ( UnsupportedEncodingException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    tlsMap.put("data", stringBuilder.toString());
+                    map.put("Transport Layer Security", tlsMap);
+
+                }
+
+
             }else if (ipMap.get("ipProtocol").equals("1")){//icmp
                 Map<String,String> icmpMap = new LinkedHashMap<>();
                 byte[] icmpHead = Arrays.copyOfRange(packet.header,34,42);
                 icmpMap.put("icmpType",String.valueOf(bytes2Int(Arrays.copyOfRange(icmpHead,0,1))));
                 icmpMap.put("icmpCode",String.valueOf(bytes2Int(Arrays.copyOfRange(icmpHead,1,2))));
                 icmpMap.put("icmpCheckSum","0x"+bytes2Str(Arrays.copyOfRange(icmpHead,2,4)));
-//                map.put("icmpIdenti")
 
                 map.put("Internet Control Message Protocol",icmpMap);
 
@@ -250,6 +296,22 @@ public class PacketFactory {
 
                 map.put("User Datagram Protocol,Src Port: "+udpMap.get("udpSourcePort")+",Dst Port: "+udpMap.get("udpDetinationPort"),udpMap);
             }
+
+        }
+        else if(etherprotocol[0]==0x08&&etherprotocol[1]==0x06) {
+            Map<String,String> arpMap = new LinkedHashMap<>();
+            int arpHeadlen = 28;
+            byte[] arpHead = Arrays.copyOfRange(packet.header,14,14+arpHeadlen);
+            arpMap.put("HardwareType",String.valueOf(bytes2Int(Arrays.copyOfRange(arpHead,0,2))));
+            arpMap.put("ProtocolType",String.valueOf(bytes2Int(Arrays.copyOfRange(arpHead,2,4))));
+            arpMap.put("HardwareSize",String.valueOf(bytes2Int(Arrays.copyOfRange(arpHead,4,5))));
+            arpMap.put("ProtocolSize",String.valueOf(bytes2Int(Arrays.copyOfRange(arpHead,5,6))));
+            arpMap.put("Opcode",String.valueOf(bytes2Int(Arrays.copyOfRange(arpHead,6,8))));
+            arpMap.put("SenderMACAddress",bytes2Mac(Arrays.copyOfRange(arpHead,8,14)));
+            arpMap.put("SenderIPAddress",bytes2Ip(Arrays.copyOfRange(arpHead,14,18)));
+            arpMap.put("TargetMACAddress",bytes2Mac(Arrays.copyOfRange(arpHead,18,24)));
+            arpMap.put("TargetIPAddress",bytes2Ip(Arrays.copyOfRange(arpHead,24,28)));
+            map.put("AddressResolution Protocol" ,arpMap);
 
         }
 

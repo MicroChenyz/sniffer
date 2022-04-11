@@ -86,10 +86,15 @@ public class Controller implements Initializable {
 
 
     private final ObservableList<String> protocols = FXCollections.observableArrayList(
-            "IP",
+            "",
+            "IP4",
+            "IP6",
+            "ARP",
             "ICMP",
             "TCP",
-            "UDP"
+            "UDP",
+            "HTTP",
+            "TLS"
     );
 
     private ObservableList<NetworkInterface> networkCards = FXCollections.observableArrayList();
